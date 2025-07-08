@@ -1,0 +1,74 @@
+# === General OS/Editor ===
+.DS_Store
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+*.vscode/
+__pycache__/
+*.log
+
+# === Python/Flask ===
+venv/
+env/
+*.pyc
+instance/
+*.sqlite3
+*.db
+*.pkl
+*.h5
+*.keras
+*.pt
+*.onnx
+
+# === Flask Config ===
+.env
+config.py  # if sensitive credentials inside
+
+# === React ===
+node_modules/
+dist/
+build/
+.env.local
+.env.development
+.env.production
+npm-debug.log
+yarn-error.log
+
+# === Large Data Files ===
+*.mat
+*.zip
+*.tar
+*.gz
+*.csv
+*.tsv
+*.json
+*.xml
+*.xlsx
+*.bak
+
+# === Model Checkpoints & AI Artifacts ===
+*.ckpt
+*.joblib
+*.sav
+runs/  # e.g. tensorboard logs
+checkpoints/
+models/
+outputs/
+logs/
+experiments/
+
+# === Docker ===
+*.pid
+docker-compose.override.yml
+
+# === Git ===
+*.orig
+*.patch
+.idea/
+*.iml
+*.merge
+
+# === Optional: Ignore frontend build in GitHub Pages ===
+# Uncomment this if you only want to deploy from a /docs folder
+# frontend/build/
