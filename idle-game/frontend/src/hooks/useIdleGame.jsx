@@ -8,6 +8,7 @@ const useIdleGame = () => {
   const [characters, setCharacters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedCharId, setSelectedCharId] = useState(null);
 
   const fetchMapData = async () => {
     try {
@@ -70,9 +71,7 @@ const useIdleGame = () => {
     }
   };
 
-  const handleCharacterClick = (character, x, y) => {
-    handleRandomMove(character.id);
-  };
+  const handleCharacterClick = (char) => setSelectedCharId(char.id);
 
   const handleRandomMove = (characterId) => {
     if (mapData?.paths?.points?.length > 0) {

@@ -1,7 +1,6 @@
-// components/Map.jsx
+// src/components/Map.jsx
 import React, { useRef, useEffect, useState } from 'react';
 
-// Map Component
 const Map = ({ mapData, characters, onCharacterClick }) => {
   const canvasRef = useRef(null);
   const [error, setError] = useState(false);
@@ -13,123 +12,107 @@ const Map = ({ mapData, characters, onCharacterClick }) => {
 
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      
+
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Defensive: always use arrays
-      const buildings = mapData?.buildings || [];
-      const trees = mapData?.trees || [];
-      const pathLines = mapData?.paths?.lines || [];
-      const pathPoints = mapData?.paths?.points || [];
 
-      // Draw buildings (rectangles)
-      buildings.forEach(building => {
-        ctx.fillStyle = building.color || '#8B4513';
-        ctx.fillRect(building.x, building.y, building.width, building.height);
-        
-        // Add border
-        ctx.strokeStyle = '#654321';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(building.x, building.y, building.width, building.height);
+      // --- Draw buildings (solid brown rectangles) ---
+      (mapData.buildings || []).forEach(b => {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(b.x, b.y, b.width, b.height);
       });
-      
-      // Draw trees (triangles)
-      trees.forEach(tree => {
-        ctx.fillStyle = tree.color || '#228B22';
+
+      // --- Draw trees (green circles) ---
+      (mapData.trees || []).forEach(t => {
+        ctx.fillStyle = '#2ecc71';
         ctx.beginPath();
-        ctx.moveTo(tree.x, tree.y - tree.size);
-        ctx.lineTo(tree.x - tree.size, tree.y + tree.size);
-        ctx.lineTo(tree.x + tree.size, tree.y + tree.size);
-        ctx.closePath();
+        ctx.arc(t.x, t.y, t.size || 6, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Add border
-        ctx.strokeStyle = '#006400';
-        ctx.lineWidth = 1;
-        ctx.stroke();
       });
-      
-      // Draw paths (yellow lines)
-      if (pathLines) {
-        ctx.strokeStyle = '#FFD700';
-        ctx.lineWidth = 8;
-        pathLines.forEach(line => {
-          ctx.beginPath();
-          ctx.moveTo(line.x1, line.y1);
-          ctx.lineTo(line.x2, line.y2);
-          ctx.stroke();
-        });
-      }
-      
-      // Draw path points (for debugging)
-      if (pathPoints) {
+
+      // --- Draw path lines as small yellow squares ---
+      const pathLines = mapData.paths?.lines || [];
+      ctx.fillStyle = '#f1c40f';
+      pathLines.forEach(p => {
+        ctx.fillRect(p.x, p.y, p.width || 4, p.height || 4);
+      });
+
+      // --- Draw path points (orange dots) ---
+      (mapData.paths?.points || []).forEach(pt => {
         ctx.fillStyle = '#FFA500';
-        pathPoints.forEach(point => {
-          ctx.beginPath();
-          ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
-          ctx.fill();
-        });
-      }
-      
-      // Draw characters
-      characters.forEach(character => {
-        // Draw character circle
-        ctx.fillStyle = character.color || '#3498db';
         ctx.beginPath();
-        ctx.arc(character.x, character.y, 15, 0, 2 * Math.PI);
+        ctx.arc(pt.x, pt.y, 3, 0, 2 * Math.PI);
         ctx.fill();
-        
-        // Draw character border
+      });
+
+      // --- Draw characters on top ---
+      characters.forEach(char => {
+        // circle
+        ctx.fillStyle = char.color || '#3498db';
+        ctx.beginPath();
+        ctx.arc(char.x, char.y, 15, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // border
         ctx.strokeStyle = '#2980b9';
         ctx.lineWidth = 2;
         ctx.stroke();
-        
-        // Draw character name
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '10px Arial';
+
+        // name
+        ctx.fillStyle = '#000';
+        ctx.font = '12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(character.name, character.x, character.y - 2);
-        
-        // Draw character role
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '8px Arial';
-        ctx.fillText(character.role, character.x, character.y + 6);
-        
-        // Draw target indicator
-        if (character.target_x !== character.x || character.target_y !== character.y) {
+        ctx.fillText(char.name, char.x, char.y - 18);
+
+        // role
+        ctx.font = '10px Arial';
+        ctx.fillText(char.role, char.x, char.y + 25);
+
+        // target indicator
+        if (char.target_x !== char.x || char.target_y !== char.y) {
           ctx.strokeStyle = '#e74c3c';
           ctx.lineWidth = 1;
           ctx.beginPath();
-          ctx.arc(character.target_x, character.target_y, 8, 0, 2 * Math.PI);
+          ctx.arc(char.target_x, char.target_y, 8, 0, 2 * Math.PI);
           ctx.stroke();
         }
       });
-      
     } catch (e) {
+      console.error(e);
       setError(true);
     }
   }, [mapData, characters]);
 
-  const handleCanvasClick = (e) => {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Check if clicked on a character
-    characters.forEach(character => {
-      const distance = Math.sqrt((x - character.x)**2 + (y - character.y)**2);
-      if (distance <= 15) {
-        onCharacterClick(character, x, y);
+  const handleCanvasClick = e => {
+    const { left, top } = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - left;
+    const y = e.clientY - top;
+
+    characters.forEach(char => {
+      const dx = x - char.x;
+      const dy = y - char.y;
+      if (Math.hypot(dx, dy) <= 15) {
+        onCharacterClick(char, x, y);
       }
     });
   };
 
   if (error) {
     return (
-      <div style={{ width: 800, height: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8d7da', border: '2px solid #f5c6cb' }}>
-        <span style={{ color: '#721c24', fontWeight: 'bold' }}>Map failed to load. Please check your map data.</span>
+      <div
+        style={{
+          width: 800,
+          height: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f8d7da',
+          border: '2px solid #f5c6cb'
+        }}
+      >
+        <span style={{ color: '#721c24', fontWeight: 'bold' }}>
+          Map failed to load. Please check your map data.
+        </span>
       </div>
     );
   }
@@ -141,7 +124,7 @@ const Map = ({ mapData, characters, onCharacterClick }) => {
         width={800}
         height={600}
         onClick={handleCanvasClick}
-        className="cursor-pointer"
+        className="cursor-pointer bg-gray-50"
       />
     </div>
   );
