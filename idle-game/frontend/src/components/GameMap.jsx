@@ -23,7 +23,9 @@ const GameMap = ({ mapData }) => {
       ctx.fill();
     });
 
-    mapData.paths.forEach(p => {
+    const pathLines = mapData?.paths?.lines || [];
+    const pathPoints = mapData?.paths?.points || [];
+    pathLines.forEach(p => {
       ctx.fillStyle = '#f1c40f';
       ctx.fillRect(p.x, p.y, 4, 4);
     });

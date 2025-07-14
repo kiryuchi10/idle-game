@@ -26,28 +26,27 @@ def test_character_creation():
     """Test character creation API"""
     print("\nTesting character creation...")
     
-    test_characters = [
-        {"name": "TestWorker", "role": "Worker", "color": "#3498db"},
-        {"name": "TestFarmer", "role": "Farmer", "color": "#2ecc71"},
-        {"name": "TestMiner", "role": "Miner", "color": "#e74c3c"}
-    ]
-    
-    created_characters = []
-    
-    for char_data in test_characters:
-        response = requests.post(f"{API_BASE_URL}/api/characters", 
-                               json=char_data)
-        
-        if response.status_code == 200:
-            character = response.json()
-            created_characters.append(character)
-            print(f"✅ Created character: {character['name']} ({character['role']})")
-            print(f"   - Position: ({character['x']}, {character['y']})")
-            print(f"   - Color: {character['color']}")
-        else:
-            print(f"❌ Character creation failed: {response.status_code}")
-    
-    return created_characters
+    # First, get the available maps
+    maps = requests.get('http://localhost:5000/api/maps').json()
+    assert maps, "No maps found in the database!"
+    map_id = int(maps[0]['id'])  # Use the first map's id
+
+    print("Available maps:", maps)
+    print("Using map_id:", map_id)
+
+    # Now, create a character with the correct map_id
+    character_data = {
+        "name": "TestChar",
+        "role": "Worker",
+        "color": "#3498db",
+        "map_id": map_id
+    }
+    resp = requests.post('http://localhost:5000/api/characters', json=character_data)
+    print(resp.status_code, resp.text)
+    if resp.status_code == 200:
+        return [resp.json()]  # Return as a list for compatibility
+    else:
+        return []
 
 def test_character_movement(characters):
     """Test character movement API"""

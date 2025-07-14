@@ -1,11 +1,11 @@
 # app/models.py
-from app import db
 from datetime import datetime
 import json
 from flask import current_app
-from flask_sqlalchemy import SQLAlchemy
+from app import db
 
-db = SQLAlchemy()
+
+
 
 class GameMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)

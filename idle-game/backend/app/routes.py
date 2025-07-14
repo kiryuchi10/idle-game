@@ -1,6 +1,7 @@
 # app/routes.py
 from flask import Blueprint, jsonify, request
-from app.models import GameMap, Character, db
+from app import db
+from app.models import GameMap, Character
 from app.utils.generator import MapGenerator
 from app.utils.pathfinding import PathFinder
 import random
@@ -8,27 +9,40 @@ import json
 
 main = Blueprint('main', __name__)
 
+def is_valid_map(game_map):
+    try:
+        buildings = json.loads(game_map.buildings or "[]")
+        trees = json.loads(game_map.trees or "[]")
+        paths = json.loads(game_map.paths or '{"lines": [], "points": []}')
+        return (
+            buildings and trees and
+            paths.get("lines") and len(paths.get("lines", [])) > 0 and
+            paths.get("points") and len(paths.get("points", [])) > 0
+        )
+    except Exception:
+        return False
+
 @main.route('/api/map', methods=['GET'])
 def get_map():
-    """Get current map or generate new one"""
     game_map = GameMap.query.first()
-    
-    if not game_map:
-        # Generate new map
+    if not game_map or not is_valid_map(game_map):
         generator = MapGenerator(800, 600)
         map_data = generator.generate_map()
-        
-        game_map = GameMap(
-            width=map_data['width'],
-            height=map_data['height'],
-            buildings=json.dumps(map_data['buildings']),
-            trees=json.dumps(map_data['trees']),
-            paths=json.dumps(map_data['paths'])
-        )
-        db.session.add(game_map)
+        if not game_map:
+            game_map = GameMap()
+            db.session.add(game_map)
+        game_map.width = map_data['width']
+        game_map.height = map_data['height']
+        game_map.buildings = json.dumps(map_data['buildings'])
+        game_map.trees = json.dumps(map_data['trees'])
+        game_map.paths = json.dumps(map_data['paths'])
         db.session.commit()
-    
     return jsonify(game_map.to_dict())
+
+@main.route('/api/maps', methods=['GET'])
+def get_maps():
+    maps = GameMap.query.all()
+    return jsonify([m.to_dict() for m in maps])
 
 @main.route('/api/characters', methods=['GET'])
 def get_characters():
@@ -40,28 +54,32 @@ def get_characters():
 def create_character():
     """Create new character"""
     data = request.get_json()
+    map_id = data.get('map_id')
+    game_map = GameMap.query.get(map_id)
+    if not game_map:
+        return jsonify({'error': 'Map not found'}), 400
     
     # Find valid spawn position on path
-    game_map = GameMap.query.first()
     if game_map:
         paths = json.loads(game_map.paths)
-        if paths:
-            spawn_point = random.choice(paths)
+        point_list = paths.get("points", [])
+        if point_list:
+            spawn_point = random.choice(point_list)
             x, y = spawn_point['x'], spawn_point['y']
         else:
             x, y = 100, 100
     else:
         x, y = 100, 100
     
-    character = Character(
-        name=data.get('name', f'Character{random.randint(1, 1000)}'),
-        role=data.get('role', 'Worker'),
-        x=x,
-        y=y,
-        target_x=x,
-        target_y=y,
-        color=data.get('color', f'#{random.randint(0, 0xFFFFFF):06x}')
-    )
+    character = Character()
+    character.name = data.get('name', f'Character{random.randint(1, 1000)}')
+    character.role = data.get('role', 'Worker')
+    character.x = x
+    character.y = y
+    character.target_x = x
+    character.target_y = y
+    character.color = data.get('color', f'#{random.randint(0, 0xFFFFFF):06x}')
+    character.map_id = game_map.id
     
     db.session.add(character)
     db.session.commit()
@@ -112,9 +130,15 @@ def update_characters():
             if game_map:
                 paths = json.loads(game_map.paths)
                 if paths:
-                    new_target = random.choice(paths)
-                    char.target_x = new_target['x']
-                    char.target_y = new_target['y']
+                    point_list = paths.get("points", [])
+                    if point_list:
+                        new_target = random.choice(point_list)
+                        char.target_x = new_target["x"]
+                        char.target_y = new_target["y"]
+                    else:
+                        # Fallback: don't change target, or set to a default
+                        char.target_x = char.x
+                        char.target_y = char.y
     
     db.session.commit()
     return jsonify([char.to_dict() for char in characters])
