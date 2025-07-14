@@ -6,7 +6,6 @@ from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
-db = SQLAlchemy()
 
 class GameMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
